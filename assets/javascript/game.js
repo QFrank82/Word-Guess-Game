@@ -1,110 +1,131 @@
-$(document).ready(function() {
+//shorten the code
+let $ = function (id) {
+    return document.getElementById(id)
+}
 
-    var possibleWords = ["florence", "paris", "madrid", "rome", "singapore", "dubai", "new york city", 
-                            "shanghai", "london", "tokyo", "sydney", "toronto", "beijing", "moscow",
-                            "johannesburg", "istanbul", "warsaw", "jakarta", "kuala lumpur", "mexico city",
-                            "hong kong", "chicago", "seoul", "los angeles", "mumbai"]
+//global variable
+const words = ["touchdown", "first down","quarterback", "head coach", "field goal", "super bowl", "penalty", "instant replay" ];
+const images = ["assets/images/touchdown.png", "assets/images/download.png", "assets/images/quarterback.png", "assets/images/head coach.png", "assets/images/field goal.png", "assets/images/super bowl.png", "assets/images/penalty.png", "assets/images/instant replay.png"];
+let word;
+const img = document.createElement("img")
+const parent = $("img")
+let answerArray = [];
+let userGuess;
+let rightGuess = false;
+let userRightGuess = 0;
+let left = 9;
+let wins = 0;
+let losses = 0;
 
-    const maxGuess = 10
-    var pauseGame = false
 
-    var guessedLetters = []
-    var guessingWord = []
-    var wordToMatch
-    var numGuess
-    var wins = 0
+//random word
+function random() {
+    let random = Math.floor(Math.random() * words.length);
+    word = words[random]
+    img.src = images[random]
+}
 
-    resetGame()
+//show blank start
+function showBlank() {
+    for (i = 0; i < word.length; i++) {
+        answerArray[i] = "_"
+    }
+    $("guess").innerHTML = answerArray.join(" ")
+}
 
-    // Wait for key press
-    document.onkeypress = function(event) {
-        // Make sure key pressed is an alpha character
-        if (isAlpha(event.key) && !pauseGame) {
-            checkForLetter(event.key.toUpperCase())
+//guesses left
+function guessesLeft() {
+    $("left").innerHTML = left
+}
+
+//wins
+function winsScore() {
+    $("wins").innerHTML = wins
+}
+
+//losses
+function lossesScore() {
+    $("losses").innerHTML = losses
+}
+
+//show wrong guess
+function wrongGuess(char) {
+    $("wrong").innerHTML += char + ", "
+}
+
+// resent function
+function initialGame() {
+    if ($("winImage")) {
+        $("winImage").remove()
+    }
+
+    left = 9;
+    answerArray = [];
+    $("wrong").innerHTML = "";
+    userRightGuess = 0
+    rightGuess = false;
+    guessesLeft()
+    random()
+    showBlank()
+}
+
+// call initial function
+initialGame()
+winsScore()
+lossesScore()
+
+//check letter
+function showLetter(char, str) {
+    for (let j = 0; j < str.length; j++) {
+        if (char === str[j]) {
+            rightGuess = true
+            answerArray.splice(j,1,char)
+            userRightGuess++
         }
     }
+    $("guess").innerHTML = answerArray.join(" ")
+}
 
-    // Game Functions
-    // Check if letter is in word & process
-    function checkForLetter(letter) {
-        var foundLetter = false
-        var correctSound = document.createElement("audio")
-        var incorrectSound = document.createElement("audio")
-        correctSound.setAttribute("src", "assets/sounds/stairs.mp3")
-        incorrectSound.setAttribute("src","assets/sounds/croak.mp3")
+//check length
+let matchLength = function() {
+    if (word.length === userRightGuess) return true
+    else return false
+}
 
-        // Search string for letter
-        for (var i=0, j= wordToMatch.length; i<j; i++) {
-            if (letter === wordToMatch[i]) {
-                guessingWord[i] = letter
-                foundLetter = true
-                correctSound.play()
-                // If guessing word matches random word
-                if (guessingWord.join("") === wordToMatch) {
-                    // Increment # of wins
-                    wins++
-                    pauseGame = true
-                    updateDisplay()
-                    setTimeout(resetGame,5000)
-                }
-            }
+//user guess
+document.onkeyup = function(event) {
+    userGuess = event.key.toLowerCase();
+
+    showLetter(userGuess, word)
+    
+    if (rightGuess) {
+        rightGuess = false
+        if (matchLength()) {
+            let audio = new Audio('https://s3-us-west-2.amazonaws.com/s.cdpn.io/74196/win.mp3');
+            audio.play()
+            img.setAttribute("id","winImage")
+            parent.appendChild(img)
+            wins++
+            winsScore()
+            setTimeout(initialGame, 2000)
+        } else {
+            let audio = new Audio('https://s3-us-west-2.amazonaws.com/s.cdpn.io/74196/goodbell.mp3');
+            audio.play()
+        }
+    } else {
+        left--
+        if (left < 1) {
+            let audio = new Audio('https://s3-us-west-2.amazonaws.com/s.cdpn.io/74196/lose.mp3');
+            audio.play()
+            initialGame()
+            losses++
+            lossesScore()
+        } else {
+            let audio = new Audio('https://s3-us-west-2.amazonaws.com/s.cdpn.io/74196/bad.mp3');
+            audio.play()
+            wrongGuess(userGuess)
+            guessesLeft()
         }
 
-        if (!foundLetter) {
-            incorrectSound.play()
-            // Check if inccorrect guess is already on the list
-            if (!guessedLetters.includes(letter)) {
-                // Add incorrect letter to guessed letter list
-                guessedLetters.push(letter)
-                // Decrement the number of remaining guesses
-                numGuess--
-            }
-            if (numGuess === 0) {
-                // Display word before reseting game
-                guessingWord = wordToMatch.split()
-                pauseGame = true
-                setTimeout(resetGame, 5000)
-            }
-        }
-
-        updateDisplay()
-
     }
-    // Check in keypressed is between A-Z or a-z
-    function isAlpha (ch){
-        return /^[A-Z]$/i.test(ch);
-    }
-
-    function resetGame() {
-        numGuess = maxGuess
-        pauseGame = false
-
-        // Get a new word
-        wordToMatch = possibleWords[Math.floor(Math.random() * possibleWords.length)].toUpperCase()
-        console.log(wordToMatch)
-
-        // Reset word arrays
-        guessedLetters = []
-        guessingWord = []
-
-        // Reset the guessed word
-        for (var i=0, j=wordToMatch.length; i < j; i++){
-            // Put a space instead of an underscore between multi word "words"
-            if (wordToMatch[i] === " ") {
-                guessingWord.push(" ")
-            } else {
-                guessingWord.push("_")
-            }
-        }
-
-        // Update the Display
-        updateDisplay()
-    }
-
-    function updateDisplay () {
-        document.getElementById("totalWins").innerText = wins
-        document.getElementById("currentWord").innerText = guessingWord.join("")
-        document.getElementById("remainingGuesses").innerText = numGuess
-        document.getElementById("guessedLetters").innerText =  guessedLetters.join(" ")
-    }
-})
+}
